@@ -1,0 +1,73 @@
+version: '3'
+
+# Сети
+networks:
+    internal:
+      driver: bridge
+
+# Ниже список наших сервисов (контейнеров)
+services:
+    # NGINX
+    nginx:
+        # Какую версию образа nginx из официального хранилища DockerHub используем
+        image: nginx:latest
+        container_name: nginx
+        restart: unless-stopped
+        # Ниже прокидываем порты. NGINX в контейнере работает на дефолтном 80, а мы возьмем 8000
+        ports:
+          - "80:80"
+        # Монтируем директории, слева директории на основной системе, справа - куда они монтируются в контейнере
+        volumes:
+          - ./website:/var/www
+          - ./config/nginx:/etc/nginx/conf.d
+          - ./data/logs:/var/log/nginx/
+        # nginx должен общаться с php контейнером
+        links:
+          - php
+        # Зависимости (сначала соберем php и mysql)
+        depends_on:
+          - php
+          - mysql
+        networks:
+          - internal
+    # PHP
+    php:
+        build:
+          context: ./config/php
+          dockerfile: Dockerfile
+        container_name: php
+        restart: unless-stopped
+        volumes:
+          - ./website:/var/www
+          - ./config/php/php.ini:/usr/local/etc/php/php.ini
+        expose:
+          - 9000
+        networks:
+          - internal
+    # MySQL
+    mysql:
+        image: mysql:latest
+        container_name: mysql
+        restart: unless-stopped
+        command: --default-authentication-plugin=mysql_native_password
+                 --innodb_use_native_aio=0
+        ports:
+          - "3306:3306"
+        volumes:
+          - ./data/mysql:/var/lib/mysql
+        # Задаем пароль для root пользователя
+        environment:
+          MYSQL_ROOT_PASSWORD: secret
+        networks:
+         - internal
+    # phpMyAdmin
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        environment:
+         - PMA_ARBITRARY=1
+        restart: always
+        ports:
+         - "8080:80"
+        networks:
+         - internal
