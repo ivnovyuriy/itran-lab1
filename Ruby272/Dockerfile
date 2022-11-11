@@ -26,9 +26,6 @@ RUN cd /tmp &&\
 RUN ruby-install ruby 2.7.2
 
 # Add Ruby binaries to $PATH
-ENV PATH /opt/rubies/ruby-2.7.2/bin:$PATH
-
-# Add options to gemrc
-# RUN echo "install: --no-document\nupdate: --no-document" > ~/.gemrc
+ENV PATH /opt/rubies/ruby-2.7.2/bin:$PATH 
 
 CMD [ "irb" ]
